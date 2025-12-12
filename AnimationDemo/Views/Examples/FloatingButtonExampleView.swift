@@ -7,8 +7,8 @@ import SwiftUI
 
 struct FloatingButtonExampleView: View {
     @State private var isExpanded = false
-    @State private var duration: Double = 0.4
-    @State private var bounce: Double = 0.3
+    @State private var animationType: AnimationTypeOption = .spring
+    @State private var parameters: [String: Double] = ["duration": 0.4, "bounce": 0.3]
     @State private var staggerDelay: Double = 0.05
 
     private let example = ExampleType.floatingButton
@@ -23,21 +23,39 @@ struct FloatingButtonExampleView: View {
     var body: some View {
         ExampleCardContainer(
             example: example,
-            parameters: [
-                .init(name: "duration", value: $duration, range: 0.1...0.8),
-                .init(name: "bounce", value: $bounce, range: 0.0...0.8),
-                .init(name: "stagger", value: $staggerDelay, range: 0.0...0.15)
-            ],
-            animationCode: ".spring(duration: \(String(format: "%.2f", duration)), bounce: \(String(format: "%.2f", bounce))).delay(i * \(String(format: "%.2f", staggerDelay)))"
+            animationType: $animationType,
+            parameters: $parameters,
+            codeSuffix: ".delay(i * \(String(format: "%.2f", staggerDelay)))"
         ) {
-            ZStack {
-                // Menu items in a circular fan
-                ForEach(Array(menuItems.enumerated()), id: \.offset) { index, item in
-                    menuItemView(icon: item.icon, color: item.color, index: index)
+            VStack {
+                Spacer()
+
+                ZStack {
+                    // Menu items in a circular fan
+                    ForEach(Array(menuItems.enumerated()), id: \.offset) { index, item in
+                        menuItemView(icon: item.icon, color: item.color, index: index)
+                    }
+
+                    // Main FAB button
+                    mainButton
                 }
 
-                // Main FAB button
-                mainButton
+                Spacer()
+
+                // Stagger delay control
+                HStack(spacing: 8) {
+                    Text("stagger:")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                    Slider(value: $staggerDelay, in: 0.0...0.15)
+                        .frame(width: 80)
+                        .tint(.orange)
+                    Text(String(format: "%.2f", staggerDelay))
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 35)
+                }
+                .padding(.bottom, 8)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -45,7 +63,7 @@ struct FloatingButtonExampleView: View {
 
     private var mainButton: some View {
         Button {
-            withAnimation(.spring(duration: duration, bounce: bounce)) {
+            withAnimation(animationType.buildAnimation(with: parameters)) {
                 isExpanded.toggle()
             }
         } label: {
@@ -79,7 +97,7 @@ struct FloatingButtonExampleView: View {
         let delay = Double(index) * staggerDelay
 
         Button {
-            withAnimation(.spring(duration: duration, bounce: bounce)) {
+            withAnimation(animationType.buildAnimation(with: parameters)) {
                 isExpanded = false
             }
         } label: {
@@ -103,7 +121,7 @@ struct FloatingButtonExampleView: View {
         .opacity(isExpanded ? 1 : 0)
         .rotationEffect(.degrees(isExpanded ? 0 : 180))
         .animation(
-            .spring(duration: duration, bounce: bounce)
+            animationType.buildAnimation(with: parameters)
             .delay(isExpanded ? delay : (Double(menuItems.count - 1 - index) * staggerDelay)),
             value: isExpanded
         )

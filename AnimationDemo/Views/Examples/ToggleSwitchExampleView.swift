@@ -7,19 +7,16 @@ import SwiftUI
 
 struct ToggleSwitchExampleView: View {
     @State private var isOn = false
-    @State private var duration: Double = 0.4
-    @State private var bounce: Double = 0.3
+    @State private var animationType: AnimationTypeOption = .spring
+    @State private var parameters: [String: Double] = ["duration": 0.4, "bounce": 0.3]
 
     private let example = ExampleType.toggleSwitch
 
     var body: some View {
         ExampleCardContainer(
             example: example,
-            parameters: [
-                .init(name: "duration", value: $duration, range: 0.1...1.0),
-                .init(name: "bounce", value: $bounce, range: 0.0...1.0)
-            ],
-            animationCode: ".spring(duration: \(String(format: "%.2f", duration)), bounce: \(String(format: "%.2f", bounce)))"
+            animationType: $animationType,
+            parameters: $parameters
         ) {
             ZStack {
                 Capsule()
@@ -33,7 +30,7 @@ struct ToggleSwitchExampleView: View {
                     .offset(x: isOn ? 45 : -45)
             }
             .onTapGesture {
-                withAnimation(.spring(duration: duration, bounce: bounce)) {
+                withAnimation(animationType.buildAnimation(with: parameters)) {
                     isOn.toggle()
                 }
             }

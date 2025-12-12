@@ -8,19 +8,16 @@ import SwiftUI
 struct DragReleaseExampleView: View {
     @State private var dragOffset: CGSize = .zero
     @State private var isDragging = false
-    @State private var stiffness: Double = 200
-    @State private var damping: Double = 15
+    @State private var animationType: AnimationTypeOption = .interpolatingSpring
+    @State private var parameters: [String: Double] = ["stiffness": 200, "damping": 15]
 
     private let example = ExampleType.dragRelease
 
     var body: some View {
         ExampleCardContainer(
             example: example,
-            parameters: [
-                .init(name: "stiffness", value: $stiffness, range: 50...400),
-                .init(name: "damping", value: $damping, range: 5...30)
-            ],
-            animationCode: ".interpolatingSpring(stiffness: \(String(format: "%.0f", stiffness)), damping: \(String(format: "%.0f", damping)))"
+            animationType: $animationType,
+            parameters: $parameters
         ) {
             GeometryReader { geometry in
                 ZStack {
@@ -49,7 +46,7 @@ struct DragReleaseExampleView: View {
                                 }
                                 .onEnded { _ in
                                     isDragging = false
-                                    withAnimation(.interpolatingSpring(stiffness: stiffness, damping: damping)) {
+                                    withAnimation(animationType.buildAnimation(with: parameters)) {
                                         dragOffset = .zero
                                     }
                                 }

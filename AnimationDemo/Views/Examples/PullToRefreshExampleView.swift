@@ -8,8 +8,8 @@ import SwiftUI
 struct PullToRefreshExampleView: View {
     @State private var pullOffset: CGFloat = 0
     @State private var isRefreshing = false
-    @State private var stiffness: Double = 150
-    @State private var damping: Double = 12
+    @State private var animationType: AnimationTypeOption = .interpolatingSpring
+    @State private var parameters: [String: Double] = ["stiffness": 150, "damping": 12]
 
     private let example = ExampleType.pullToRefresh
     private let threshold: CGFloat = 80
@@ -17,11 +17,8 @@ struct PullToRefreshExampleView: View {
     var body: some View {
         ExampleCardContainer(
             example: example,
-            parameters: [
-                .init(name: "stiffness", value: $stiffness, range: 50...300),
-                .init(name: "damping", value: $damping, range: 5...25)
-            ],
-            animationCode: ".interpolatingSpring(stiffness: \(String(format: "%.0f", stiffness)), damping: \(String(format: "%.0f", damping)))"
+            animationType: $animationType,
+            parameters: $parameters
         ) {
             VStack(spacing: 0) {
                 // Refresh indicator
@@ -105,20 +102,20 @@ struct PullToRefreshExampleView: View {
                 if pullOffset > threshold && !isRefreshing {
                     // Trigger refresh
                     isRefreshing = true
-                    withAnimation(.interpolatingSpring(stiffness: stiffness, damping: damping)) {
+                    withAnimation(animationType.buildAnimation(with: parameters)) {
                         pullOffset = threshold
                     }
 
                     // Simulate refresh completion
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                         isRefreshing = false
-                        withAnimation(.interpolatingSpring(stiffness: stiffness, damping: damping)) {
+                        withAnimation(animationType.buildAnimation(with: parameters)) {
                             pullOffset = 0
                         }
                     }
                 } else {
                     // Spring back
-                    withAnimation(.interpolatingSpring(stiffness: stiffness, damping: damping)) {
+                    withAnimation(animationType.buildAnimation(with: parameters)) {
                         pullOffset = 0
                     }
                 }
