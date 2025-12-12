@@ -33,8 +33,8 @@ struct ExamplesView: View {
         switch selectedExample {
         case .toggleSwitch:
             ToggleSwitchExampleView()
-        case .cardSwipe:
-            CardSwipeExampleView()
+        case .floatingButton:
+            FloatingButtonExampleView()
         case .dragRelease:
             DragReleaseExampleView()
         case .heartReaction:

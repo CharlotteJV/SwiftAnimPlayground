@@ -8,11 +8,20 @@ import SwiftUI
 struct DragReleaseExampleView: View {
     @State private var dragOffset: CGSize = .zero
     @State private var isDragging = false
+    @State private var stiffness: Double = 200
+    @State private var damping: Double = 15
 
     private let example = ExampleType.dragRelease
 
     var body: some View {
-        ExampleCardContainer(example: example) {
+        ExampleCardContainer(
+            example: example,
+            parameters: [
+                .init(name: "stiffness", value: $stiffness, range: 50...400),
+                .init(name: "damping", value: $damping, range: 5...30)
+            ],
+            animationCode: ".interpolatingSpring(stiffness: \(String(format: "%.0f", stiffness)), damping: \(String(format: "%.0f", damping)))"
+        ) {
             GeometryReader { geometry in
                 ZStack {
                     // Grid background for visual reference
@@ -21,12 +30,12 @@ struct DragReleaseExampleView: View {
                     // Origin indicator
                     Circle()
                         .stroke(Color.purple.opacity(0.3), style: StrokeStyle(lineWidth: 2, dash: [8]))
-                        .frame(width: 90, height: 90)
+                        .frame(width: 100, height: 100)
 
                     // Draggable object
                     Circle()
                         .fill(Color.purple.gradient)
-                        .frame(width: 80, height: 80)
+                        .frame(width: 90, height: 90)
                         .scaleEffect(isDragging ? 1.15 : 1.0)
                         .shadow(color: .purple.opacity(0.4), radius: isDragging ? 20 : 8, y: isDragging ? 10 : 4)
                         .offset(dragOffset)
@@ -40,7 +49,7 @@ struct DragReleaseExampleView: View {
                                 }
                                 .onEnded { _ in
                                     isDragging = false
-                                    withAnimation(.interpolatingSpring(stiffness: 200, damping: 15)) {
+                                    withAnimation(.interpolatingSpring(stiffness: stiffness, damping: damping)) {
                                         dragOffset = .zero
                                     }
                                 }

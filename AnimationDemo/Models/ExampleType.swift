@@ -7,7 +7,7 @@ import SwiftUI
 
 enum ExampleType: String, CaseIterable, Identifiable {
     case toggleSwitch = "Toggle Switch"
-    case cardSwipe = "Card Swipe"
+    case floatingButton = "Floating Button"
     case dragRelease = "Drag & Release"
     case heartReaction = "Heart Reaction"
     case pullToRefresh = "Pull to Refresh"
@@ -17,7 +17,7 @@ enum ExampleType: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .toggleSwitch: return "switch.2"
-        case .cardSwipe: return "rectangle.portrait.on.rectangle.portrait.angled"
+        case .floatingButton: return "plus.circle.fill"
         case .dragRelease: return "hand.draw"
         case .heartReaction: return "heart.fill"
         case .pullToRefresh: return "arrow.down.circle"
@@ -27,7 +27,7 @@ enum ExampleType: String, CaseIterable, Identifiable {
     var description: String {
         switch self {
         case .toggleSwitch: return "Tap to toggle on/off with spring animation"
-        case .cardSwipe: return "Swipe left or right like a dating app"
+        case .floatingButton: return "Tap to expand menu with staggered springs"
         case .dragRelease: return "Drag anywhere, release to spring back"
         case .heartReaction: return "Tap to show a bouncing heart"
         case .pullToRefresh: return "Pull down to trigger refresh animation"
@@ -37,7 +37,7 @@ enum ExampleType: String, CaseIterable, Identifiable {
     var accentColor: Color {
         switch self {
         case .toggleSwitch: return .green
-        case .cardSwipe: return .pink
+        case .floatingButton: return .orange
         case .dragRelease: return .purple
         case .heartReaction: return .red
         case .pullToRefresh: return .blue
@@ -52,11 +52,11 @@ enum ExampleType: String, CaseIterable, Identifiable {
                 isOn.toggle()
             }
             """
-        case .cardSwipe:
+        case .floatingButton:
             return """
-            .offset(x: offset.width)
-            .rotationEffect(.degrees(offset.width / 20))
-            .animation(.spring(duration: 0.5, bounce: 0.25), value: offset)
+            withAnimation(.spring(duration: 0.4, bounce: 0.3).delay(Double(index) * 0.05)) {
+                isExpanded.toggle()
+            }
             """
         case .dragRelease:
             return """
