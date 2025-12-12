@@ -45,7 +45,7 @@ Prebuilt binaries are available in the [Releases](../../releases) section.
 
 ### Build from Source
 1. Clone the repository
-2. Open `AnimationDemo.xcodeproj` in Xcode
+2. Open `Swift Anim.xcodeproj` in Xcode
 3. Build and run (⌘R)
 
 ## License
