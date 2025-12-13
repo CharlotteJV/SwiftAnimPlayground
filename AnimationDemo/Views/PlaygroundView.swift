@@ -27,73 +27,11 @@ struct PlaygroundView: View {
 
     private var globalControls: some View {
         VStack(spacing: 32) {
-            HStack(spacing: 32) {
-                Picker("", selection: $animationType) {
-                    ForEach(AnimationType.allCases, id: \.self) { type in
-                        Text(type.rawValue).tag(type)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 240)
-
-                Divider()
-                    .frame(height: 24)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Shape")
-                        .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    Picker("", selection: $demoShape) {
-                        ForEach(DemoShape.allCases, id: \.self) { shape in
-                            Text(shape.rawValue).tag(shape)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                }
-
-                Divider()
-                    .frame(height: 24)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Duration")
-                        .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    HStack(spacing: 6) {
-                        Slider(value: $globalDuration, in: 0.2...1.5, step: 0.1)
-                            .frame(width: 100)
-                            .tint(.blue)
-                        Text(String(format: "%.1fs", globalDuration))
-                            .font(.system(.subheadline))
-                            .foregroundStyle(.primary)
-                            .frame(width: 36)
-                            .monospacedDigit()
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Hold")
-                        .font(.system(.caption, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    HStack(spacing: 6) {
-                        Slider(value: $holdDuration, in: 0.5...3.0, step: 0.25)
-                            .frame(width: 100)
-                            .tint(.blue)
-                        Text(String(format: "%.1fs", holdDuration))
-                            .font(.system(.subheadline))
-                            .foregroundStyle(.primary)
-                            .frame(width: 36)
-                            .monospacedDigit()
-                    }
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.background)
-                    .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
+            GlobalControlsBar(
+                animationType: $animationType,
+                demoShape: $demoShape,
+                duration: $globalDuration,
+                holdDuration: $holdDuration
             )
 
             Text("Compare how different animation curves affect movement.\nClick on the code snippets to copy to clipboard.")
@@ -196,87 +134,6 @@ struct PlaygroundView: View {
     @ViewBuilder
     private func animationView(for curve: AnimationCurve) -> some View {
         switch curve {
-        case .defaultCurve:
-            AnimationCurveDemoView(
-                animation: .default,
-                title: curve.rawValue,
-                duration: globalDuration,
-                holdDuration: holdDuration,
-                animationType: animationType,
-                shape: demoShape
-            )
-        case .linear:
-            AnimationCurveDemoView(
-                animation: .linear(duration: globalDuration),
-                title: curve.rawValue,
-                duration: globalDuration,
-                holdDuration: holdDuration,
-                animationType: animationType,
-                shape: demoShape
-            )
-        case .easeIn:
-            AnimationCurveDemoView(
-                animation: .easeIn(duration: globalDuration),
-                title: curve.rawValue,
-                duration: globalDuration,
-                holdDuration: holdDuration,
-                animationType: animationType,
-                shape: demoShape
-            )
-        case .easeOut:
-            AnimationCurveDemoView(
-                animation: .easeOut(duration: globalDuration),
-                title: curve.rawValue,
-                duration: globalDuration,
-                holdDuration: holdDuration,
-                animationType: animationType,
-                shape: demoShape
-            )
-        case .easeInOut:
-            AnimationCurveDemoView(
-                animation: .easeInOut(duration: globalDuration),
-                title: curve.rawValue,
-                duration: globalDuration,
-                holdDuration: holdDuration,
-                animationType: animationType,
-                shape: demoShape
-            )
-        case .smooth:
-            AnimationCurveDemoView(
-                animation: .smooth(duration: globalDuration),
-                title: curve.rawValue,
-                duration: globalDuration,
-                holdDuration: holdDuration,
-                animationType: animationType,
-                shape: demoShape
-            )
-        case .spring:
-            SpringDemoView(
-                title: curve.rawValue,
-                initialBounce: 0.3,
-                duration: globalDuration,
-                holdDuration: holdDuration,
-                animationType: animationType,
-                shape: demoShape
-            )
-        case .snappy:
-            SnappyDemoView(
-                title: curve.rawValue,
-                initialExtraBounce: 0.0,
-                duration: globalDuration,
-                holdDuration: holdDuration,
-                animationType: animationType,
-                shape: demoShape
-            )
-        case .bouncy:
-            BouncyDemoView(
-                title: curve.rawValue,
-                initialExtraBounce: 0.0,
-                duration: globalDuration,
-                holdDuration: holdDuration,
-                animationType: animationType,
-                shape: demoShape
-            )
         case .interpolatingSpring:
             InterpolatingSpringDemoView(
                 title: curve.rawValue,
@@ -286,6 +143,14 @@ struct PlaygroundView: View {
         case .interactiveSpring:
             InteractiveSpringDemoView(
                 title: curve.rawValue,
+                animationType: animationType,
+                shape: demoShape
+            )
+        default:
+            AnimationCurveDemoView(
+                curve: curve,
+                duration: globalDuration,
+                holdDuration: holdDuration,
                 animationType: animationType,
                 shape: demoShape
             )

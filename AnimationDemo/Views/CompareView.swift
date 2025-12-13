@@ -43,73 +43,11 @@ struct CompareView: View {
     // MARK: - Global Controls
 
     private var globalControls: some View {
-        HStack(spacing: 32) {
-            Picker("", selection: $animationType) {
-                ForEach(AnimationType.allCases, id: \.self) { type in
-                    Text(type.rawValue).tag(type)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 240)
-
-            Divider()
-                .frame(height: 24)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Shape")
-                    .font(.system(.caption, weight: .medium))
-                    .foregroundStyle(.secondary)
-                Picker("", selection: $demoShape) {
-                    ForEach(DemoShape.allCases, id: \.self) { shape in
-                        Text(shape.rawValue).tag(shape)
-                    }
-                }
-                .pickerStyle(.menu)
-                .labelsHidden()
-            }
-
-            Divider()
-                .frame(height: 24)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Duration")
-                    .font(.system(.caption, weight: .medium))
-                    .foregroundStyle(.secondary)
-                HStack(spacing: 6) {
-                    Slider(value: $globalDuration, in: 0.2...1.5, step: 0.1)
-                        .frame(width: 100)
-                        .tint(.blue)
-                    Text(String(format: "%.1fs", globalDuration))
-                        .font(.system(.subheadline))
-                        .foregroundStyle(.primary)
-                        .frame(width: 36)
-                        .monospacedDigit()
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Hold")
-                    .font(.system(.caption, weight: .medium))
-                    .foregroundStyle(.secondary)
-                HStack(spacing: 6) {
-                    Slider(value: $holdDuration, in: 0.5...3.0, step: 0.25)
-                        .frame(width: 100)
-                        .tint(.blue)
-                    Text(String(format: "%.1fs", holdDuration))
-                        .font(.system(.subheadline))
-                        .foregroundStyle(.primary)
-                        .frame(width: 36)
-                        .monospacedDigit()
-                }
-            }
-        }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.background)
-                .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
+        GlobalControlsBar(
+            animationType: $animationType,
+            demoShape: $demoShape,
+            duration: $globalDuration,
+            holdDuration: $holdDuration
         )
     }
 
@@ -171,34 +109,52 @@ struct CompareView: View {
                         .foregroundStyle(.tertiary)
                 }
             } else {
-                VStack(spacing: 16) {
-                    // Display mode picker
-                    Picker("", selection: $displayMode) {
-                        ForEach(CompareDisplayMode.allCases, id: \.self) { mode in
-                            Text(mode.rawValue).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 200)
+                GeometryReader { geometry in
+                    let sidePadding: CGFloat = 48
+                    let availableWidth = geometry.size.width - (sidePadding * 2)
 
-                    // Animated shapes
-                    ZStack {
-                        ForEach(Array(slots.enumerated()), id: \.element.id) { index, slot in
-                            DemoShapeView(shape: demoShape, color: slot.color)
-                                .scaleEffect(displayMode == .stacked ? 2.0 : 1.5)
-                                .opacity(displayMode == .stacked ? 0.65 : 1.0)
-                                .modifier(CompareAnimationModifier(
-                                    type: animationType,
-                                    isAnimated: slot.isAnimated,
-                                    useVerticalMovement: displayMode == .sideBySide
-                                ))
-                                .offset(x: horizontalOffset(for: index))
-                                .animation(.spring(duration: 0.5, bounce: 0.3), value: displayMode)
+                    VStack(spacing: 16) {
+                        // Display mode picker - stays at top
+                        Picker("", selection: $displayMode) {
+                            ForEach(CompareDisplayMode.allCases, id: \.self) { mode in
+                                Text(mode.rawValue).tag(mode)
+                            }
                         }
+                        .pickerStyle(.segmented)
+                        .frame(width: 200)
+                        .padding(.top, 16)
+
+                        Spacer()
+
+                        // Animated shapes area
+                        ZStack {
+                            ForEach(Array(slots.enumerated()), id: \.element.id) { index, slot in
+                                DemoShapeView(shape: demoShape, color: slot.color)
+                                    .scaleEffect(displayMode == .stacked ? 1.8 : 1.3)
+                                    .opacity(displayMode == .stacked ? 0.65 : 1.0)
+                                    .modifier(CompareAnimationModifier(
+                                        type: animationType,
+                                        isAnimated: slot.isAnimated,
+                                        useVerticalMovement: displayMode == .sideBySide
+                                    ))
+                                    .offset(x: adaptiveOffset(for: index, availableWidth: availableWidth))
+                                    .animation(.spring(duration: 0.5, bounce: 0.3), value: displayMode)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 140)
+                        .padding(.bottom, 64)
+
+                        // Curve visualizations
+                        curveVisualizationsArea(availableWidth: availableWidth)
+                            .padding(.horizontal, sidePadding)
+
+                        Spacer()
                     }
+                    .padding(.bottom, 16)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
                 }
-                .padding(.top, 16)
             }
         }
         .frame(minHeight: 300)
@@ -275,32 +231,22 @@ struct CompareView: View {
                 .buttonStyle(.plain)
             }
 
-            // Parameter sliders based on curve type
-            switch slot.wrappedValue.curve {
-            case .spring:
+            // Dynamic parameter sliders from parameterSpecs
+            ForEach(slot.wrappedValue.editableParameters) { param in
                 HStack(spacing: 4) {
-                    Text("bounce:")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Slider(value: slot.bounce, in: 0.0...0.9)
-                        .frame(width: 80)
-                    Text(String(format: "%.1f", slot.wrappedValue.bounce))
-                        .font(.caption)
-                        .frame(width: 28)
-                }
-            case .snappy, .bouncy:
-                HStack(spacing: 4) {
-                    Text("extraBounce:")
+                    Text("\(param.name):")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                    Slider(value: slot.extraBounce, in: 0.0...0.5)
-                        .frame(width: 60)
-                    Text(String(format: "%.1f", slot.wrappedValue.extraBounce))
+                    Slider(
+                        value: parameterBinding(for: param.id, in: slot),
+                        in: param.range,
+                        step: param.step
+                    )
+                    .frame(width: 70)
+                    Text(param.formatValue(slot.wrappedValue.parameterValues[param.id] ?? param.defaultValue))
                         .font(.caption)
                         .frame(width: 28)
                 }
-            default:
-                EmptyView()
             }
         }
         .padding(12)
@@ -310,24 +256,93 @@ struct CompareView: View {
         )
     }
 
+    /// Creates a binding to a specific parameter value in the slot
+    private func parameterBinding(for paramId: String, in slot: Binding<ComparisonSlot>) -> Binding<Double> {
+        Binding(
+            get: {
+                slot.wrappedValue.parameterValues[paramId] ??
+                    slot.wrappedValue.curve.parameterSpecs.first { $0.id == paramId }?.defaultValue ?? 0.0
+            },
+            set: { newValue in
+                slot.wrappedValue.parameterValues[paramId] = newValue
+            }
+        )
+    }
+
+    // MARK: - Curve Visualizations
+
+    private let stackedGraphSize = CGSize(width: 400, height: 160)
+    private let sideBySideGraphSize = CGSize(width: 180, height: 130)
+
+    private func curveVisualizationsArea(availableWidth: CGFloat) -> some View {
+        VStack(spacing: 8) {
+            // Graphs - use ZStack with offsets for smooth animation
+            ZStack {
+                ForEach(Array(slots.enumerated()), id: \.element.id) { index, slot in
+                    CompareCurveGraphView(
+                        slots: displayMode == .stacked ? slots : [slot],
+                        size: displayMode == .stacked ? stackedGraphSize : sideBySideGraphSize
+                    )
+                    .opacity(displayMode == .stacked && index > 0 ? 0 : 1)
+                    .offset(x: adaptiveOffset(for: index, availableWidth: availableWidth))
+                    .animation(.spring(duration: 0.5, bounce: 0.3), value: displayMode)
+                }
+            }
+            .frame(
+                width: displayMode == .stacked ? stackedGraphSize.width : nil,
+                height: displayMode == .stacked ? stackedGraphSize.height : sideBySideGraphSize.height
+            )
+            .frame(maxWidth: displayMode == .stacked ? nil : .infinity)
+            .animation(.spring(duration: 0.5, bounce: 0.3), value: displayMode)
+
+            // Legend - use ZStack with offsets for smooth animation
+            ZStack {
+                ForEach(Array(slots.enumerated()), id: \.element.id) { index, slot in
+                    legendItem(for: slot)
+                        .offset(x: adaptiveOffset(for: index, availableWidth: availableWidth))
+                        .animation(.spring(duration: 0.5, bounce: 0.3), value: displayMode)
+                }
+            }
+            .frame(maxWidth: displayMode == .stacked ? nil : .infinity)
+        }
+    }
+
+    private func legendItem(for slot: ComparisonSlot) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(slot.color)
+                .frame(width: 8, height: 8)
+            Text(slot.curve.rawValue)
+                .font(.caption2)
+                .foregroundStyle(slot.color)
+        }
+    }
+
     // MARK: - Layout Helpers
 
-    private func horizontalOffset(for index: Int) -> CGFloat {
+    /// Calculates adaptive offset for items based on available width
+    private func adaptiveOffset(for index: Int, availableWidth: CGFloat) -> CGFloat {
         guard displayMode == .sideBySide else { return 0 }
 
-        let spacing: CGFloat = 180
         let count = slots.count
+        guard count > 1 else { return 0 }
 
-        switch count {
-        case 1:
-            return 0
-        case 2:
-            return index == 0 ? -spacing / 2 : spacing / 2
-        case 3:
-            return CGFloat(index - 1) * spacing
-        default:
-            return 0
-        }
+        // Spacing constraints
+        let itemWidth: CGFloat = 180
+        let minSpacing: CGFloat = 20
+        let maxSpacing: CGFloat = 120  // Cap maximum distance between item centers
+
+        // Calculate ideal spacing to distribute evenly
+        let idealSpacing = (availableWidth - CGFloat(count) * itemWidth) / CGFloat(count - 1) + itemWidth
+
+        // Clamp spacing between min and max
+        let actualSpacing = min(max(idealSpacing, itemWidth + minSpacing), itemWidth + maxSpacing)
+
+        // Center the items
+        let totalWidth = actualSpacing * CGFloat(count - 1)
+        let startX = -totalWidth / 2
+
+        return startX + CGFloat(index) * actualSpacing
     }
 
     // MARK: - Animation Loop

@@ -11,9 +11,19 @@ struct InteractiveSpringDemoView: View {
     let animationType: AnimationType
     let shape: DemoShape
 
-    @State private var response: Double = 0.4
-    @State private var dampingFraction: Double = 0.7
+    @State private var parameterValues: [String: Double] = [
+        "response": 0.4,
+        "dampingFraction": 0.7
+    ]
     @State private var showCopied = false
+
+    private var response: Double {
+        get { parameterValues["response"] ?? 0.4 }
+    }
+
+    private var dampingFraction: Double {
+        get { parameterValues["dampingFraction"] ?? 0.7 }
+    }
 
     // Gesture tracking
     @State private var dragOffset: CGSize = .zero
@@ -43,6 +53,10 @@ struct InteractiveSpringDemoView: View {
         .padding()
         .frame(width: 220, height: 320)
         .background(cardBackground)
+        .overlay(alignment: .topTrailing) {
+            InfoButton(curve: .interactiveSpring, parameterValues: $parameterValues)
+                .padding(12)
+        }
     }
 
     // MARK: - View Components
@@ -104,13 +118,28 @@ struct InteractiveSpringDemoView: View {
             .fontWeight(.bold)
     }
 
+    private var responseSpec: AnimationParameterSpec {
+        AnimationCurve.interactiveSpring.parameterSpecs.first { $0.id == "response" }!
+    }
+
+    private var dampingFractionSpec: AnimationParameterSpec {
+        AnimationCurve.interactiveSpring.parameterSpecs.first { $0.id == "dampingFraction" }!
+    }
+
     private var responseSlider: some View {
         HStack(spacing: 4) {
             Text("response:")
                 .font(.system(.caption2))
-            Slider(value: $response, in: 0.1...1.0, step: 0.1)
-                .frame(width: 60)
-            Text(String(format: "%.1f", response))
+            Slider(
+                value: Binding(
+                    get: { parameterValues["response"] ?? 0.4 },
+                    set: { parameterValues["response"] = $0 }
+                ),
+                in: responseSpec.range,
+                step: responseSpec.step
+            )
+            .frame(width: 60)
+            Text(responseSpec.formatValue(response))
                 .font(.system(.caption2))
                 .frame(width: 28)
         }
@@ -121,9 +150,16 @@ struct InteractiveSpringDemoView: View {
         HStack(spacing: 4) {
             Text("damping:")
                 .font(.system(.caption2))
-            Slider(value: $dampingFraction, in: 0.1...1.0, step: 0.1)
-                .frame(width: 60)
-            Text(String(format: "%.1f", dampingFraction))
+            Slider(
+                value: Binding(
+                    get: { parameterValues["dampingFraction"] ?? 0.7 },
+                    set: { parameterValues["dampingFraction"] = $0 }
+                ),
+                in: dampingFractionSpec.range,
+                step: dampingFractionSpec.step
+            )
+            .frame(width: 60)
+            Text(dampingFractionSpec.formatValue(dampingFraction))
                 .font(.system(.caption2))
                 .frame(width: 28)
         }

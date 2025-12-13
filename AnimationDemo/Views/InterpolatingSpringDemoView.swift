@@ -11,9 +11,19 @@ struct InterpolatingSpringDemoView: View {
     let animationType: AnimationType
     let shape: DemoShape
 
-    @State private var stiffness: Double = 170
-    @State private var damping: Double = 15
+    @State private var parameterValues: [String: Double] = [
+        "stiffness": 170,
+        "damping": 15
+    ]
     @State private var showCopied = false
+
+    private var stiffness: Double {
+        parameterValues["stiffness"] ?? 170
+    }
+
+    private var damping: Double {
+        parameterValues["damping"] ?? 15
+    }
 
     // Additive animation values
     @State private var scaleValue: Double = 1.0
@@ -42,6 +52,10 @@ struct InterpolatingSpringDemoView: View {
         .padding()
         .frame(width: 220, height: 320)
         .background(cardBackground)
+        .overlay(alignment: .topTrailing) {
+            InfoButton(curve: .interpolatingSpring, parameterValues: $parameterValues)
+                .padding(12)
+        }
     }
 
     // MARK: - View Components
@@ -75,13 +89,28 @@ struct InterpolatingSpringDemoView: View {
             .fontWeight(.bold)
     }
 
+    private var stiffnessSpec: AnimationParameterSpec {
+        AnimationCurve.interpolatingSpring.parameterSpecs.first { $0.id == "stiffness" }!
+    }
+
+    private var dampingSpec: AnimationParameterSpec {
+        AnimationCurve.interpolatingSpring.parameterSpecs.first { $0.id == "damping" }!
+    }
+
     private var stiffnessSlider: some View {
         HStack(spacing: 4) {
             Text("stiffness:")
                 .font(.system(.caption2))
-            Slider(value: $stiffness, in: 50...400)
-                .frame(width: 60)
-            Text("\(Int(stiffness))")
+            Slider(
+                value: Binding(
+                    get: { parameterValues["stiffness"] ?? 170 },
+                    set: { parameterValues["stiffness"] = $0 }
+                ),
+                in: stiffnessSpec.range,
+                step: stiffnessSpec.step
+            )
+            .frame(width: 60)
+            Text(stiffnessSpec.formatValue(stiffness))
                 .font(.system(.caption2))
                 .frame(width: 28)
         }
@@ -92,9 +121,16 @@ struct InterpolatingSpringDemoView: View {
         HStack(spacing: 4) {
             Text("damping:")
                 .font(.system(.caption2))
-            Slider(value: $damping, in: 5...40)
-                .frame(width: 60)
-            Text("\(Int(damping))")
+            Slider(
+                value: Binding(
+                    get: { parameterValues["damping"] ?? 15 },
+                    set: { parameterValues["damping"] = $0 }
+                ),
+                in: dampingSpec.range,
+                step: dampingSpec.step
+            )
+            .frame(width: 60)
+            Text(dampingSpec.formatValue(damping))
                 .font(.system(.caption2))
                 .frame(width: 28)
         }

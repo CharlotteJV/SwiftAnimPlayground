@@ -7,35 +7,56 @@ import SwiftUI
 import AppKit
 
 struct AnimationCurveDemoView: View {
-    let animation: Animation
-    let title: String
+    let curve: AnimationCurve
     let duration: Double
     let holdDuration: Double
     let animationType: AnimationType
     let shape: DemoShape
 
+    @State private var parameterValues: [String: Double] = [:]
     @State private var isAnimated = false
     @State private var timer: Timer?
     @State private var showCopied = false
+
+    init(curve: AnimationCurve, duration: Double, holdDuration: Double, animationType: AnimationType, shape: DemoShape) {
+        self.curve = curve
+        self.duration = duration
+        self.holdDuration = holdDuration
+        self.animationType = animationType
+        self.shape = shape
+        _parameterValues = State(initialValue: curve.defaultParameterValues)
+    }
+
+    private var animation: Animation {
+        curve.buildAnimation(with: parameterValues, duration: duration)
+    }
 
     private var loopInterval: Double {
         duration + holdDuration + duration + 0.3
     }
 
     private var codeString: String {
-        "\(title)(duration: \(String(format: "%.1f", duration)))"
+        curve.codeString(with: parameterValues, duration: duration)
+    }
+
+    private var editableSpecs: [AnimationParameterSpec] {
+        curve.editableParameterSpecs
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             animationArea
             titleLabel
-            Spacer()
+            parameterSlidersArea
             codePreview
         }
         .padding()
         .frame(width: 220, height: 280)
         .background(cardBackground)
+        .overlay(alignment: .topTrailing) {
+            InfoButton(curve: curve, parameterValues: $parameterValues)
+                .padding(12)
+        }
         .onAppear { startLoop() }
         .onDisappear { timer?.invalidate() }
         .onChange(of: duration) { restartLoop() }
@@ -54,9 +75,38 @@ struct AnimationCurveDemoView: View {
     }
 
     private var titleLabel: some View {
-        Text(title)
+        Text(curve.rawValue)
             .font(.system(.headline))
             .fontWeight(.bold)
+    }
+
+    private var parameterSlidersArea: some View {
+        VStack(spacing: 8) {
+            ForEach(editableSpecs) { spec in
+                parameterSlider(for: spec)
+            }
+        }
+        .frame(height: 24, alignment: .top)
+    }
+
+    private func parameterSlider(for spec: AnimationParameterSpec) -> some View {
+        HStack(spacing: 4) {
+            Text("\(spec.name):")
+                .font(.system(.caption2))
+            Slider(
+                value: Binding(
+                    get: { parameterValues[spec.id] ?? spec.defaultValue },
+                    set: { parameterValues[spec.id] = $0 }
+                ),
+                in: spec.range,
+                step: spec.step
+            )
+            .frame(width: 70)
+            Text(spec.formatValue(parameterValues[spec.id] ?? spec.defaultValue))
+                .font(.system(.caption))
+                .frame(width: 28)
+        }
+        .foregroundStyle(.secondary)
     }
 
     private var codePreview: some View {

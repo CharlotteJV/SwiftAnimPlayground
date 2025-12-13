@@ -8,46 +8,36 @@ import SwiftUI
 struct ComparisonSlot: Identifiable, Equatable {
     let id = UUID()
     var curve: AnimationCurve
-    var bounce: Double = 0.3        // For .spring
-    var extraBounce: Double = 0.0   // For .snappy, .bouncy
+    var parameterValues: [String: Double] = [:]
     var isAnimated: Bool = false
-
     var color: Color
 
     static let slotColors: [Color] = [.blue, .orange, .green]
 
-    func animation(duration: Double) -> Animation {
-        switch curve {
-        case .defaultCurve:
-            return .default
-        case .linear:
-            return .linear(duration: duration)
-        case .easeIn:
-            return .easeIn(duration: duration)
-        case .easeOut:
-            return .easeOut(duration: duration)
-        case .easeInOut:
-            return .easeInOut(duration: duration)
-        case .smooth:
-            return .smooth(duration: duration)
-        case .spring:
-            return .spring(duration: duration, bounce: bounce)
-        case .snappy:
-            return .snappy(duration: duration, extraBounce: extraBounce)
-        case .bouncy:
-            return .bouncy(duration: duration, extraBounce: extraBounce)
-        case .interpolatingSpring, .interactiveSpring:
-            // These shouldn't be used in compare mode
-            return .default
-        }
+    init(curve: AnimationCurve, color: Color) {
+        self.curve = curve
+        self.color = color
+        self.parameterValues = curve.defaultParameterValues
     }
 
+    /// Builds animation using centralized AnimationCurve.buildAnimation
+    func animation(duration: Double) -> Animation {
+        curve.buildAnimation(with: parameterValues, duration: duration)
+    }
+
+    /// Returns editable parameters for this curve (excludes duration)
+    var editableParameters: [AnimationParameterSpec] {
+        curve.editableParameterSpecs
+    }
+
+    /// Whether this curve has editable parameters
     var hasParameters: Bool {
-        switch curve {
-        case .spring, .snappy, .bouncy:
-            return true
-        default:
-            return false
-        }
+        !editableParameters.isEmpty
+    }
+
+    /// Updates parameter values when curve changes
+    mutating func updateCurve(_ newCurve: AnimationCurve) {
+        curve = newCurve
+        parameterValues = newCurve.defaultParameterValues
     }
 }
