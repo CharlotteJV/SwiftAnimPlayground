@@ -65,6 +65,10 @@ struct ExamplesView: View {
             CardStackExampleView()
         case .cardFlip:
             CardFlipExampleView()
+        case .morphingShape:
+            MorphingShapeExampleView()
+        case .heroAnimation:
+            HeroAnimationExampleView()
         }
     }
 }

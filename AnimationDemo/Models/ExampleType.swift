@@ -15,6 +15,8 @@ enum ExampleType: String, CaseIterable, Identifiable {
     case toastNotification = "Toast Notification"
     case cardStack = "Card Stack"
     case cardFlip = "Card Flip"
+    case morphingShape = "Morphing Shape"
+    case heroAnimation = "Hero Animation"
 
     var id: String { rawValue }
 
@@ -29,6 +31,8 @@ enum ExampleType: String, CaseIterable, Identifiable {
         case .toastNotification: return "bell.badge"
         case .cardStack: return "square.stack.3d.down.right"
         case .cardFlip: return "rectangle.portrait.rotate"
+        case .morphingShape: return "star.circle"
+        case .heroAnimation: return "rectangle.expand.vertical"
         }
     }
 
@@ -43,6 +47,8 @@ enum ExampleType: String, CaseIterable, Identifiable {
         case .toastNotification: return "Tap to create stacking toast notifications"
         case .cardStack: return "Swipe cards left or right to dismiss"
         case .cardFlip: return "Tap to flip the card and reveal the back"
+        case .morphingShape: return "Watch shapes morph with animatableData"
+        case .heroAnimation: return "Tap cards to expand with matched geometry"
         }
     }
 
@@ -57,6 +63,8 @@ enum ExampleType: String, CaseIterable, Identifiable {
         case .toastNotification: return .indigo
         case .cardStack: return .pink
         case .cardFlip: return .teal
+        case .morphingShape: return .purple
+        case .heroAnimation: return .mint
         }
     }
 
@@ -115,6 +123,19 @@ enum ExampleType: String, CaseIterable, Identifiable {
             return """
             withAnimation(.spring(duration: 0.6, bounce: 0.2)) {
                 isFlipped.toggle()
+            }
+            """
+        case .morphingShape:
+            return """
+            withAnimation(.spring(duration: 0.8, bounce: 0.3)) {
+                morphProgress = nextShape
+            }
+            """
+        case .heroAnimation:
+            return """
+            .matchedGeometryEffect(id: card.id, in: namespace)
+            withAnimation(.spring(duration: 0.5, bounce: 0.25)) {
+                selectedCard = card.id
             }
             """
         }
