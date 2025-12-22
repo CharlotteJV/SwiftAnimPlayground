@@ -24,6 +24,8 @@ struct HeartReactionExampleView: View {
         let settleCode = settleAnimationType.codeString(with: settleParameters)
         let popDuration = String(format: "%.2f", popParameters["duration"] ?? 0.25)
         return """
+        import SwiftUI
+
         struct HeartButton: View {
             @State private var isLiked = false
             @State private var scale: CGFloat = 1.0
@@ -47,12 +49,17 @@ struct HeartReactionExampleView: View {
                 }
 
                 // Stage 2: Settle back to normal
-                DispatchQueue.main.asyncAfter(deadline: .now() + \(popDuration)) {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(\(popDuration)))
                     withAnimation(\(settleCode)) {
                         scale = 1.0
                     }
                 }
             }
+        }
+
+        #Preview {
+            HeartButton()
         }
         """
     }

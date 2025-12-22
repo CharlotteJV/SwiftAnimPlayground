@@ -17,6 +17,8 @@ struct PullToRefreshExampleView: View {
     private var simplifiedCode: String {
         let animCode = animationType.codeString(with: parameters)
         return """
+        import SwiftUI
+
         struct PullToRefreshView: View {
             @State private var pullOffset: CGFloat = 0
             @State private var isRefreshing = false
@@ -29,9 +31,11 @@ struct PullToRefreshExampleView: View {
                         .opacity(pullOffset > 20 ? 1 : 0)
                         .offset(y: min(pullOffset * 0.5, threshold))
 
-                    // Your content here
-                    Text("Pull me down!")
-                        .padding(.top, 40)
+                    // Content
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(.gray.opacity(0.1))
+                        .frame(height: 200)
+                        .overlay(Text("Pull me down!"))
                         .offset(y: pullOffset * 0.3)
 
                     Spacer()
@@ -46,8 +50,8 @@ struct PullToRefreshExampleView: View {
                         .onEnded { _ in
                             if pullOffset > threshold {
                                 isRefreshing = true
-                                // Simulate refresh
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                Task { @MainActor in
+                                    try? await Task.sleep(for: .seconds(1.5))
                                     isRefreshing = false
                                     withAnimation(\(animCode)) {
                                         pullOffset = 0
@@ -60,7 +64,12 @@ struct PullToRefreshExampleView: View {
                             }
                         }
                 )
+                .padding()
             }
+        }
+
+        #Preview {
+            PullToRefreshView()
         }
         """
     }

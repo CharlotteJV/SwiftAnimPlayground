@@ -31,6 +31,8 @@ struct ToastNotificationExampleView: View {
     private var simplifiedCode: String {
         let animCode = animationType.codeString(with: parameters)
         return """
+        import SwiftUI
+
         struct Toast: Identifiable {
             let id = UUID()
             let message: String
@@ -38,32 +40,37 @@ struct ToastNotificationExampleView: View {
             let color: Color
         }
 
-        struct ToastView: View {
+        struct ToastDemoView: View {
             @State private var toasts: [Toast] = []
-            let maxToasts = 5
 
             var body: some View {
                 ZStack(alignment: .topTrailing) {
+                    // Add button
+                    Button("Add Toast") { addToast() }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+
                     // Toast stack
-                    VStack(alignment: .trailing, spacing: 8) {
-                        ForEach(Array(toasts.prefix(maxToasts).enumerated()),
-                                id: \\.element.id) { index, toast in
-                            ToastCard(toast: toast)
-                                .offset(y: CGFloat(index) * 8)
-                                .scaleEffect(1.0 - CGFloat(index) * 0.03)
-                                .zIndex(Double(maxToasts - index))
-                                .transition(.move(edge: .trailing)
-                                    .combined(with: .opacity))
-                        }
+                    ForEach(Array(toasts.prefix(5).enumerated().reversed()), id: \\.element.id) { index, toast in
+                        ToastCard(toast: toast)
+                            .offset(y: CGFloat(index) * 8)
+                            .scaleEffect(1.0 - CGFloat(index) * 0.03, anchor: .topTrailing)
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
                     }
+                    .padding()
                 }
             }
 
             func addToast() {
+                let toast = Toast(message: "New notification", icon: "bell.fill", color: .orange)
                 withAnimation(\(animCode)) {
-                    toasts.insert(newToast, at: 0)
-                    if toasts.count > maxToasts {
-                        toasts.removeLast()
+                    toasts.insert(toast, at: 0)
+                    if toasts.count > 5 { toasts.removeLast() }
+                }
+                // Auto-dismiss
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(3))
+                    withAnimation(\(animCode)) {
+                        toasts.removeAll { $0.id == toast.id }
                     }
                 }
             }
@@ -73,23 +80,20 @@ struct ToastNotificationExampleView: View {
             let toast: Toast
 
             var body: some View {
-                HStack(spacing: 16) {
+                HStack(spacing: 12) {
                     Image(systemName: toast.icon)
-                        .font(.system(size: 24))
                         .foregroundStyle(toast.color)
                     Text(toast.message)
-                        .font(.system(size: 16, weight: .medium))
-                    Spacer()
+                        .font(.system(size: 14, weight: .medium))
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-                .frame(width: 280)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(.background)
-                        .shadow(radius: 10, y: 4)
-                )
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(RoundedRectangle(cornerRadius: 12).fill(.background).shadow(radius: 8))
             }
+        }
+
+        #Preview {
+            ToastDemoView()
         }
         """
     }

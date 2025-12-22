@@ -16,6 +16,8 @@ struct DragReleaseExampleView: View {
     private var simplifiedCode: String {
         let animCode = animationType.codeString(with: parameters)
         return """
+        import SwiftUI
+
         struct DraggableCircle: View {
             @State private var offset: CGSize = .zero
             @State private var isDragging = false
@@ -40,6 +42,10 @@ struct DragReleaseExampleView: View {
                             }
                     )
             }
+        }
+
+        #Preview {
+            DraggableCircle()
         }
         """
     }

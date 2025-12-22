@@ -73,7 +73,7 @@ struct CodePreviewSheet: View {
             .padding()
             .background(Color(nsColor: .windowBackgroundColor))
         }
-        .frame(width: 700, height: 550)
+        .frame(width: 700, height: 700)
     }
 }
 
@@ -142,6 +142,7 @@ struct SyntaxHighlightedCode: View {
         var remaining = line[...]
         var inString = false
         var stringChar: Character = "\""
+        var lastChar: Character? = nil
 
         while !remaining.isEmpty {
             // Handle strings
@@ -164,27 +165,38 @@ struct SyntaxHighlightedCode: View {
                 attr.foregroundColor = stringColor
                 result += attr
                 inString = false
+                lastChar = stringChar
                 continue
             }
 
-            // Try to match a token
-            if let match = matchToken(in: remaining) {
+            // Check if we're at the start of a word (not continuing an identifier)
+            let atWordStart = lastChar == nil || !isIdentifierChar(lastChar!)
+
+            // Try to match a token (only match keywords/types at word boundaries)
+            if let match = matchToken(in: remaining, atWordStart: atWordStart) {
                 let token = String(remaining.prefix(match.length))
                 var attr = AttributedString(token)
                 attr.foregroundColor = match.color
                 result += attr
+                lastChar = token.last
                 remaining = remaining.dropFirst(match.length)
                 continue
             }
 
             // Default: single character
-            var attr = AttributedString(String(remaining.first!))
+            let char = remaining.first!
+            var attr = AttributedString(String(char))
             attr.foregroundColor = defaultColor
             result += attr
+            lastChar = char
             remaining = remaining.dropFirst()
         }
 
         return result
+    }
+
+    private func isIdentifierChar(_ char: Character) -> Bool {
+        char.isLetter || char.isNumber || char == "_"
     }
 
     private struct TokenMatch {
@@ -192,9 +204,9 @@ struct SyntaxHighlightedCode: View {
         let color: Color
     }
 
-    private func matchToken(in text: Substring) -> TokenMatch? {
-        // Check for numbers
-        if let first = text.first, first.isNumber || (first == "." && text.dropFirst().first?.isNumber == true) {
+    private func matchToken(in text: Substring, atWordStart: Bool) -> TokenMatch? {
+        // Check for numbers (only at word start)
+        if atWordStart, let first = text.first, first.isNumber || (first == "." && text.dropFirst().first?.isNumber == true) {
             var length = 0
             var hasDecimal = first == "."
             for char in text {
@@ -212,21 +224,23 @@ struct SyntaxHighlightedCode: View {
             }
         }
 
-        // Check for keywords and types (must be followed by non-alphanumeric)
-        for keyword in keywords {
-            if text.hasPrefix(keyword) {
-                let afterIndex = text.index(text.startIndex, offsetBy: keyword.count, limitedBy: text.endIndex)
-                if afterIndex == text.endIndex || !text[afterIndex!].isLetter && !text[afterIndex!].isNumber && text[afterIndex!] != "_" {
-                    return TokenMatch(length: keyword.count, color: keywordColor)
+        // Check for keywords and types (must be at word start AND followed by non-alphanumeric)
+        if atWordStart {
+            for keyword in keywords {
+                if text.hasPrefix(keyword) {
+                    let afterIndex = text.index(text.startIndex, offsetBy: keyword.count, limitedBy: text.endIndex)
+                    if afterIndex == text.endIndex || !isIdentifierChar(text[afterIndex!]) {
+                        return TokenMatch(length: keyword.count, color: keywordColor)
+                    }
                 }
             }
-        }
 
-        for type in types {
-            if text.hasPrefix(type) {
-                let afterIndex = text.index(text.startIndex, offsetBy: type.count, limitedBy: text.endIndex)
-                if afterIndex == text.endIndex || !text[afterIndex!].isLetter && !text[afterIndex!].isNumber && text[afterIndex!] != "_" {
-                    return TokenMatch(length: type.count, color: typeColor)
+            for type in types {
+                if text.hasPrefix(type) {
+                    let afterIndex = text.index(text.startIndex, offsetBy: type.count, limitedBy: text.endIndex)
+                    if afterIndex == text.endIndex || !isIdentifierChar(text[afterIndex!]) {
+                        return TokenMatch(length: type.count, color: typeColor)
+                    }
                 }
             }
         }

@@ -15,26 +15,37 @@ struct CardFlipExampleView: View {
     private var simplifiedCode: String {
         let animCode = animationType.codeString(with: parameters)
         return """
+        import SwiftUI
+
         struct FlippableCard: View {
             @State private var isFlipped = false
 
             var body: some View {
                 ZStack {
                     // Front side
-                    CardFront()
-                        .opacity(isFlipped ? 0 : 1)
-                        .rotation3DEffect(
-                            .degrees(isFlipped ? 180 : 0),
-                            axis: (x: 0, y: 1, z: 0)
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.indigo.gradient)
+                        .frame(width: 180, height: 240)
+                        .overlay(
+                            Image(systemName: "questionmark")
+                                .font(.system(size: 50, weight: .bold))
+                                .foregroundStyle(.white)
                         )
+                        .opacity(isFlipped ? 0 : 1)
+                        .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
 
                     // Back side
-                    CardBack()
-                        .opacity(isFlipped ? 1 : 0)
-                        .rotation3DEffect(
-                            .degrees(isFlipped ? 0 : -180),
-                            axis: (x: 0, y: 1, z: 0)
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.white)
+                        .frame(width: 180, height: 240)
+                        .overlay(
+                            VStack {
+                                Image(systemName: "sparkles").font(.largeTitle).foregroundStyle(.yellow)
+                                Text("Surprise!").font(.headline)
+                            }
                         )
+                        .opacity(isFlipped ? 1 : 0)
+                        .rotation3DEffect(.degrees(isFlipped ? 0 : -180), axis: (x: 0, y: 1, z: 0))
                 }
                 .onTapGesture {
                     withAnimation(\(animCode)) {
@@ -42,6 +53,10 @@ struct CardFlipExampleView: View {
                     }
                 }
             }
+        }
+
+        #Preview {
+            FlippableCard()
         }
         """
     }

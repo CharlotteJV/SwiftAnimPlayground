@@ -12,8 +12,21 @@ struct SwipeCard: Identifiable {
     let title: String
 }
 
+/// A card that's animating out of the stack
+struct DismissingCard: Identifiable {
+    let id: UUID
+    let card: SwipeCard
+    let offset: CGSize
+    let rotation: Double
+    let targetOffset: CGSize
+    let targetRotation: Double
+    let velocity: CGFloat
+}
+
 struct CardStackExampleView: View {
     @State private var cards: [SwipeCard] = CardStackExampleView.generateCards()
+    @State private var dismissingCards: [DismissingCard] = []
+    @State private var topCardDragProgress: CGFloat = 0 // 0 = no drag, 1 = at threshold
 
     // Animation 1: Snap back (when swipe doesn't reach threshold)
     @State private var snapBackAnimationType: AnimationTypeOption = .spring
@@ -37,58 +50,85 @@ struct CardStackExampleView: View {
         }
 
         return """
-        struct CardView: View {
+        import SwiftUI
+
+        struct Card: Identifiable {
+            let id = UUID()
+            let color: Color
+            let title: String
+        }
+
+        struct CardStackView: View {
+            @State private var cards: [Card] = [
+                Card(color: .pink, title: "First"),
+                Card(color: .blue, title: "Second"),
+                Card(color: .green, title: "Third")
+            ]
+            @State private var dragProgress: CGFloat = 0
+
             var body: some View {
-                VStack(spacing: 12) {
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 40))
-                    Text("Swipe Me")
-                        .font(.headline)
+                ZStack {
+                    ForEach(Array(cards.prefix(3).enumerated().reversed()), id: \\.element.id) { index, card in
+                        let stackOffset = CGFloat(index) * (1 - dragProgress)
+
+                        CardView(card: card, isTop: index == 0, onDragChanged: { progress in
+                            withAnimation(.interactiveSpring(response: 0.15, dampingFraction: 0.8)) {
+                                dragProgress = max(progress, 0)
+                            }
+                            if progress < 0 { // Snap-back signal
+                                withAnimation(\(snapBackCode)) { dragProgress = 0 }
+                            }
+                        }, onDismiss: {
+                            dragProgress = 0
+                            cards.removeAll { $0.id == card.id }
+                        })
+                        .offset(y: stackOffset * 8)
+                        .scaleEffect(1 - stackOffset * 0.05)
+                    }
                 }
-                .foregroundStyle(.white)
-                .frame(width: 180, height: 200)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(.pink.gradient)
-                )
             }
         }
 
-        struct SwipeableCard: View {
+        struct CardView: View {
+            let card: Card
+            let isTop: Bool
+            var onDragChanged: (CGFloat) -> Void
+            var onDismiss: () -> Void
+
             @State private var offset: CGSize = .zero
-            @State private var rotation: Double = 0
 
             var body: some View {
-                CardView()
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(card.color.gradient)
+                    .frame(width: 180, height: 200)
+                    .overlay(Text(card.title).foregroundStyle(.white))
                     .offset(offset)
-                    .rotationEffect(.degrees(rotation))
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                offset = value.translation
-                                rotation = Double(value.translation.width / 20)
-                            }
-                            .onEnded { value in
-                                let threshold: CGFloat = 100
-                                if abs(value.translation.width) > threshold {
-                                    // Dismiss (velocity used when interpolatingSpring)
-                                    let direction: CGFloat = value.translation.width > 0 ? 1 : -1
-                                    let velocity = value.velocity.width / 1000
-
-                                    withAnimation(\(dismissCode)) {
-                                        offset.width = direction * 1000
-                                        rotation = Double(direction * 30)
-                                    }
-                                } else {
-                                    // Snap back
-                                    withAnimation(\(snapBackCode)) {
-                                        offset = .zero
-                                        rotation = 0
-                                    }
+                    .rotationEffect(.degrees(Double(offset.width) / 20))
+                    .gesture(isTop ? DragGesture()
+                        .onChanged { value in
+                            offset = value.translation
+                            onDragChanged(abs(offset.width) / 150)
+                        }
+                        .onEnded { value in
+                            let velocity = abs(value.velocity.width) / 800
+                            if abs(offset.width) > 150 {
+                                withAnimation(\(dismissCode)) {
+                                    offset.width = offset.width > 0 ? 800 : -800
+                                }
+                                onDismiss()
+                            } else {
+                                onDragChanged(-1) // Signal snap-back
+                                withAnimation(\(snapBackCode)) {
+                                    offset = .zero
                                 }
                             }
+                        } : nil
                     )
             }
+        }
+
+        #Preview {
+            CardStackView()
         }
         """
     }
@@ -117,23 +157,50 @@ struct CardStackExampleView: View {
                 Spacer()
 
                 ZStack {
+                    // Cards animating out (behind the stack)
+                    ForEach(dismissingCards) { dismissing in
+                        DismissingCardView(
+                            dismissingCard: dismissing,
+                            dismissAnimationType: dismissAnimationType,
+                            dismissParameters: dismissParameters
+                        )
+                        .zIndex(0)
+                    }
+
+                    // Active card stack
                     ForEach(Array(cards.prefix(3).enumerated().reversed()), id: \.element.id) { index, card in
+                        let effectiveIndex = CGFloat(index) * (1 - topCardDragProgress)
+
                         SwipeableCardView(
                             card: card,
                             isTop: index == 0,
                             snapBackAnimationType: snapBackAnimationType,
                             snapBackParameters: snapBackParameters,
                             dismissAnimationType: dismissAnimationType,
-                            dismissParameters: dismissParameters
-                        ) {
-                            removeCard(card)
+                            dismissParameters: dismissParameters,
+                            onDragChanged: { progress in
+                                if progress < 0 {
+                                    // Snap-back signal: animate progress back to 0
+                                    withAnimation(snapBackAnimationType.buildAnimation(with: snapBackParameters)) {
+                                        topCardDragProgress = 0
+                                    }
+                                } else {
+                                    // Smooth the drag progress with a light animation
+                                    withAnimation(.interactiveSpring(response: 0.15, dampingFraction: 0.8)) {
+                                        topCardDragProgress = progress
+                                    }
+                                }
+                            }
+                        ) { offset, rotation, velocity in
+                            topCardDragProgress = 0
+                            dismissCard(card, offset: offset, rotation: rotation, velocity: velocity)
                         }
-                        .offset(y: CGFloat(index) * 8)
-                        .scaleEffect(1.0 - CGFloat(index) * 0.05)
+                        .offset(y: effectiveIndex * 8)
+                        .scaleEffect(1.0 - effectiveIndex * 0.05)
                         .zIndex(Double(3 - index))
                     }
 
-                    if cards.isEmpty {
+                    if cards.isEmpty && dismissingCards.isEmpty {
                         VStack(spacing: 12) {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 48))
@@ -211,13 +278,38 @@ struct CardStackExampleView: View {
         .padding(24)
     }
 
-    private func removeCard(_ card: SwipeCard) {
-        withAnimation(dismissAnimationType.buildAnimation(with: dismissParameters)) {
-            cards.removeAll { $0.id == card.id }
+    private func dismissCard(_ card: SwipeCard, offset: CGSize, rotation: Double, velocity: CGFloat) {
+        let direction: CGFloat = offset.width > 0 ? 1 : -1
+        let dismissDistance: CGFloat = 800
+        let targetOffset = CGSize(width: direction * dismissDistance, height: offset.height)
+        let targetRotation = Double(direction * 30)
+
+        // Create dismissing card with current position and velocity
+        let dismissing = DismissingCard(
+            id: card.id,
+            card: card,
+            offset: offset,
+            rotation: rotation,
+            targetOffset: targetOffset,
+            targetRotation: targetRotation,
+            velocity: velocity
+        )
+
+        // Remove from stack immediately (next card becomes interactive)
+        cards.removeAll { $0.id == card.id }
+
+        // Add to dismissing cards
+        dismissingCards.append(dismissing)
+
+        // Clean up after animation completes
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.8))
+            dismissingCards.removeAll { $0.id == card.id }
         }
     }
 
     private func resetCards() {
+        dismissingCards.removeAll()
         withAnimation(snapBackAnimationType.buildAnimation(with: snapBackParameters)) {
             cards = CardStackExampleView.generateCards()
         }
@@ -241,33 +333,17 @@ struct SwipeableCardView: View {
     let snapBackParameters: [String: Double]
     let dismissAnimationType: AnimationTypeOption
     let dismissParameters: [String: Double]
-    let onSwipe: () -> Void
+    var onDragChanged: ((_ progress: CGFloat) -> Void)? = nil
+    let onSwipe: (_ offset: CGSize, _ rotation: Double, _ velocity: CGFloat) -> Void
 
     @State private var offset: CGSize = .zero
     @State private var rotation: Double = 0
 
     private let swipeThreshold: CGFloat = 150
     private let maxDistance: CGFloat = 300
-    private let dismissDistance: CGFloat = 800
 
     private var dragProgress: CGFloat {
         min(abs(offset.width) / maxDistance, 1.0)
-    }
-
-    private func dismissAnimation(velocity: CGFloat) -> Animation {
-        if dismissAnimationType == .interpolatingSpring {
-            // Use velocity with interpolatingSpring
-            let stiffness = dismissParameters["stiffness"] ?? 180
-            let damping = dismissParameters["damping"] ?? 20
-            return .interpolatingSpring(
-                stiffness: stiffness,
-                damping: damping,
-                initialVelocity: velocity
-            )
-        } else {
-            // Use standard animation without velocity
-            return dismissAnimationType.buildAnimation(with: dismissParameters)
-        }
     }
 
     var body: some View {
@@ -280,30 +356,24 @@ struct SwipeableCardView: View {
                     .onChanged { value in
                         offset = value.translation
                         rotation = Double(value.translation.width / 20)
+                        // Report drag progress to parent for stack animation
+                        onDragChanged?(min(abs(value.translation.width) / swipeThreshold, 1.0))
                     }
                     .onEnded { value in
                         if abs(value.translation.width) > swipeThreshold {
-                            // Dismiss
-                            let direction: CGFloat = value.translation.width > 0 ? 1 : -1
-                            let remainingDistance = dismissDistance - abs(value.translation.width)
+                            // Calculate velocity for the animation
+                            let remainingDistance: CGFloat = 800 - abs(value.translation.width)
                             let velocity = abs(value.velocity.width) / remainingDistance
 
-                            withAnimation(dismissAnimation(velocity: velocity)) {
-                                offset.width = direction * dismissDistance
-                                rotation = Double(direction * 30)
-                            }
-
-                            // Remove card after animation settles
-                            Task { @MainActor in
-                                try? await Task.sleep(for: .seconds(0.5))
-                                onSwipe()
-                            }
+                            // Pass current state to parent - card will be removed immediately
+                            onSwipe(offset, rotation, velocity)
                         } else {
-                            // Snap back
+                            // Snap back with animation (parent will animate progress back too)
                             withAnimation(snapBackAnimationType.buildAnimation(with: snapBackParameters)) {
                                 offset = .zero
                                 rotation = 0
                             }
+                            onDragChanged?(-1) // Signal snap-back (negative value)
                         }
                     }
                 : nil
@@ -347,6 +417,74 @@ struct SwipeableCardView: View {
                     .opacity(offset.width < -30 ? min(Double(-offset.width - 30) / 70, 1) : 0)
                     .offset(x: 50, y: -60)
             }
+        )
+    }
+}
+
+// MARK: - Dismissing Card View
+
+struct DismissingCardView: View {
+    let dismissingCard: DismissingCard
+    let dismissAnimationType: AnimationTypeOption
+    let dismissParameters: [String: Double]
+
+    @State private var offset: CGSize
+    @State private var rotation: Double
+    @State private var opacity: Double = 1.0
+
+    init(dismissingCard: DismissingCard, dismissAnimationType: AnimationTypeOption, dismissParameters: [String: Double]) {
+        self.dismissingCard = dismissingCard
+        self.dismissAnimationType = dismissAnimationType
+        self.dismissParameters = dismissParameters
+        // Start at the position where the card was released
+        self._offset = State(initialValue: dismissingCard.offset)
+        self._rotation = State(initialValue: dismissingCard.rotation)
+    }
+
+    private func dismissAnimation(velocity: CGFloat) -> Animation {
+        if dismissAnimationType == .interpolatingSpring {
+            let stiffness = dismissParameters["stiffness"] ?? 100
+            let damping = dismissParameters["damping"] ?? 25
+            return .interpolatingSpring(
+                stiffness: stiffness,
+                damping: damping,
+                initialVelocity: velocity
+            )
+        } else {
+            return dismissAnimationType.buildAnimation(with: dismissParameters)
+        }
+    }
+
+    var body: some View {
+        cardContent
+            .offset(offset)
+            .rotationEffect(.degrees(rotation))
+            .opacity(opacity)
+            .onAppear {
+                // Animate to target position using the velocity from the swipe
+                withAnimation(dismissAnimation(velocity: dismissingCard.velocity)) {
+                    offset = dismissingCard.targetOffset
+                    rotation = dismissingCard.targetRotation
+                    opacity = 0.2
+                }
+            }
+    }
+
+    private var cardContent: some View {
+        VStack(spacing: 12) {
+            Image(systemName: dismissingCard.card.icon)
+                .font(.system(size: 40))
+                .foregroundStyle(.white)
+
+            Text(dismissingCard.card.title)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+        .frame(width: 180, height: 200)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(dismissingCard.card.color.gradient)
+                .shadow(color: dismissingCard.card.color.opacity(0.4), radius: 12, y: 6)
         )
     }
 }

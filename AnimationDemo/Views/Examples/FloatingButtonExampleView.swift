@@ -24,6 +24,8 @@ struct FloatingButtonExampleView: View {
         let animCode = animationType.codeString(with: parameters)
         let stagger = String(format: "%.2f", staggerDelay)
         return """
+        import SwiftUI
+
         struct FloatingActionButton: View {
             @State private var isExpanded = false
 
@@ -51,6 +53,7 @@ struct FloatingButtonExampleView: View {
                                     .rotationEffect(.degrees(isExpanded ? 45 : 0))
                             )
                     }
+                    .buttonStyle(.borderless)
                 }
             }
 
@@ -69,7 +72,12 @@ struct FloatingButtonExampleView: View {
                 .scaleEffect(isExpanded ? 1 : 0.3)
                 .opacity(isExpanded ? 1 : 0)
                 .animation(\(animCode).delay(Double(index) * \(stagger)), value: isExpanded)
+                .buttonStyle(.borderless)
             }
+        }
+
+        #Preview {
+            FloatingActionButton()
         }
         """
     }

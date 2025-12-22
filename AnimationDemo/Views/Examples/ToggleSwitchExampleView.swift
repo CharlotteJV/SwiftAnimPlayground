@@ -14,6 +14,8 @@ struct ToggleSwitchExampleView: View {
 
     private var simplifiedCode: String {
         """
+        import SwiftUI
+
         struct ToggleSwitchView: View {
             @State private var isOn = false
 
@@ -35,6 +37,10 @@ struct ToggleSwitchExampleView: View {
                     }
                 }
             }
+        }
+
+        #Preview {
+            ToggleSwitchView()
         }
         """
     }

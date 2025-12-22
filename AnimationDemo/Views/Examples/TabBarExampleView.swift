@@ -22,11 +22,14 @@ struct TabBarExampleView: View {
     private var simplifiedCode: String {
         let animCode = animationType.codeString(with: parameters)
         return """
+        import SwiftUI
+
         struct CustomTabBar: View {
             @State private var selectedTab = 0
 
             let tabs = [("house.fill", "Home"), ("magnifyingglass", "Search"),
                         ("heart.fill", "Favorites"), ("person.fill", "Profile")]
+            let tabWidth: CGFloat = 80
 
             var body: some View {
                 HStack(spacing: 0) {
@@ -40,17 +43,26 @@ struct TabBarExampleView: View {
                                 Image(systemName: tab.0)
                                 Text(tab.1).font(.caption)
                             }
-                            .frame(maxWidth: .infinity)
+                            .foregroundStyle(selectedTab == index ? .cyan : .secondary)
+                            .frame(width: tabWidth)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
                 }
+                .padding(.vertical, 10)
                 .background(alignment: .leading) {
                     Capsule()
                         .fill(Color.cyan.opacity(0.2))
-                        .frame(width: tabWidth)
-                        .offset(x: CGFloat(selectedTab) * tabWidth)
+                        .frame(width: tabWidth - 8, height: 50)
+                        .offset(x: CGFloat(selectedTab) * tabWidth + 4)
                 }
+                .background(Capsule().fill(.gray.opacity(0.1)))
             }
+        }
+
+        #Preview {
+            CustomTabBar()
         }
         """
     }
