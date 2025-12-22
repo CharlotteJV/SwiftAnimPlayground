@@ -6,11 +6,25 @@
 import SwiftUI
 import AppKit
 
+/// A fixed (non-editable) parameter to display in the code editor
+struct FixedParameter {
+    let name: String
+    let value: String
+    let valueColor: Color
+
+    init(name: String, value: String, valueColor: Color = .purple) {
+        self.name = name
+        self.value = value
+        self.valueColor = valueColor
+    }
+}
+
 struct InteractiveCodeEditor: View {
     @Binding var animationType: AnimationTypeOption
     @Binding var parameters: [String: Double]
     let accentColor: Color
     var suffix: String = ""
+    var fixedParameter: FixedParameter? = nil
 
     @State private var editingParameter: String? = nil
     @State private var editText: String = ""
@@ -43,6 +57,21 @@ struct InteractiveCodeEditor: View {
                         .foregroundStyle(.secondary)
 
                     parameterValue(for: paramDef)
+                }
+
+                // Fixed parameter (non-editable)
+                if let fixed = fixedParameter {
+                    if !animationType.parameters.isEmpty {
+                        Text(", ")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Text("\(fixed.name): ")
+                        .foregroundStyle(.secondary)
+
+                    Text(fixed.value)
+                        .foregroundStyle(fixed.valueColor)
+                        .fontWeight(.medium)
                 }
 
                 Text("))")
@@ -129,7 +158,18 @@ struct InteractiveCodeEditor: View {
     }
 
     private var fullCodeString: String {
-        "withAnimation(\(animationType.codeString(with: parameters))\(suffix)) {\n    // your code\n}"
+        var code = animationType.codeString(with: parameters)
+        if let fixed = fixedParameter {
+            // Insert fixed parameter before the closing paren
+            if code.hasSuffix(")") {
+                code = String(code.dropLast())
+                if !animationType.parameters.isEmpty {
+                    code += ", "
+                }
+                code += "\(fixed.name): \(fixed.value))"
+            }
+        }
+        return "withAnimation(\(code)\(suffix)) {\n    // your code\n}"
     }
 }
 

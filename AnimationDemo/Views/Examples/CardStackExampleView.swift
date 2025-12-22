@@ -19,15 +19,23 @@ struct CardStackExampleView: View {
     @State private var snapBackAnimationType: AnimationTypeOption = .spring
     @State private var snapBackParameters: [String: Double] = ["duration": 0.4, "bounce": 0.4]
 
-    // Animation 2: Dismiss (when card is swiped away)
-    @State private var dismissAnimationType: AnimationTypeOption = .smooth
-    @State private var dismissParameters: [String: Double] = ["duration": 0.3, "extraBounce": 0.0]
+    // Animation 2: Dismiss (uses initialVelocity when interpolatingSpring)
+    @State private var dismissAnimationType: AnimationTypeOption = .interpolatingSpring
+    @State private var dismissParameters: [String: Double] = ["stiffness": 100, "damping": 25]
 
     private let example = ExampleType.cardStack
 
     private var simplifiedCode: String {
         let snapBackCode = snapBackAnimationType.codeString(with: snapBackParameters)
-        let dismissCode = dismissAnimationType.codeString(with: dismissParameters)
+        let dismissCode: String
+        if dismissAnimationType == .interpolatingSpring {
+            let stiffness = dismissParameters["stiffness"] ?? 180
+            let damping = dismissParameters["damping"] ?? 20
+            dismissCode = ".interpolatingSpring(stiffness: \(String(format: "%.0f", stiffness)), damping: \(String(format: "%.0f", damping)), initialVelocity: velocity)"
+        } else {
+            dismissCode = dismissAnimationType.codeString(with: dismissParameters)
+        }
+
         return """
         struct CardView: View {
             var body: some View {
@@ -63,8 +71,10 @@ struct CardStackExampleView: View {
                             .onEnded { value in
                                 let threshold: CGFloat = 100
                                 if abs(value.translation.width) > threshold {
-                                    // Dismiss
+                                    // Dismiss (velocity used when interpolatingSpring)
                                     let direction: CGFloat = value.translation.width > 0 ? 1 : -1
+                                    let velocity = value.velocity.width / 1000
+
                                     withAnimation(\(dismissCode)) {
                                         offset.width = direction * 1000
                                         rotation = Double(direction * 30)
@@ -165,34 +175,35 @@ struct CardStackExampleView: View {
             .clipped()
 
             // Two animation code editors
-            VStack(spacing: 8) {
+            VStack(spacing: 12) {
                 // Animation 1: Snap back
-                HStack(spacing: 8) {
-                    Text("1.")
-                        .font(.system(.body, design: .monospaced))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Snap Back")
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 20)
+                        .textCase(.uppercase)
 
                     InteractiveCodeEditor(
                         animationType: $snapBackAnimationType,
                         parameters: $snapBackParameters,
-                        accentColor: .cyan,
-                        suffix: " // Snap back"
+                        accentColor: .cyan
                     )
                 }
 
                 // Animation 2: Dismiss
-                HStack(spacing: 8) {
-                    Text("2.")
-                        .font(.system(.body, design: .monospaced))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Dismiss")
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 20)
+                        .textCase(.uppercase)
 
                     InteractiveCodeEditor(
                         animationType: $dismissAnimationType,
                         parameters: $dismissParameters,
                         accentColor: .pink,
-                        suffix: " // Dismiss"
+                        fixedParameter: dismissAnimationType == .interpolatingSpring
+                            ? FixedParameter(name: "initialVelocity", value: "velocity")
+                            : nil
                     )
                 }
             }
@@ -237,13 +248,26 @@ struct SwipeableCardView: View {
 
     private let swipeThreshold: CGFloat = 150
     private let maxDistance: CGFloat = 300
+    private let dismissDistance: CGFloat = 800
 
     private var dragProgress: CGFloat {
         min(abs(offset.width) / maxDistance, 1.0)
     }
 
-    private var dismissDuration: Double {
-        dismissParameters["duration"] ?? 0.3
+    private func dismissAnimation(velocity: CGFloat) -> Animation {
+        if dismissAnimationType == .interpolatingSpring {
+            // Use velocity with interpolatingSpring
+            let stiffness = dismissParameters["stiffness"] ?? 180
+            let damping = dismissParameters["damping"] ?? 20
+            return .interpolatingSpring(
+                stiffness: stiffness,
+                damping: damping,
+                initialVelocity: velocity
+            )
+        } else {
+            // Use standard animation without velocity
+            return dismissAnimationType.buildAnimation(with: dismissParameters)
+        }
     }
 
     var body: some View {
@@ -261,13 +285,17 @@ struct SwipeableCardView: View {
                         if abs(value.translation.width) > swipeThreshold {
                             // Dismiss
                             let direction: CGFloat = value.translation.width > 0 ? 1 : -1
-                            withAnimation(dismissAnimationType.buildAnimation(with: dismissParameters)) {
-                                offset.width = direction * 750
-                                offset.height = value.translation.height
+                            let remainingDistance = dismissDistance - abs(value.translation.width)
+                            let velocity = abs(value.velocity.width) / remainingDistance
+
+                            withAnimation(dismissAnimation(velocity: velocity)) {
+                                offset.width = direction * dismissDistance
                                 rotation = Double(direction * 30)
                             }
+
+                            // Remove card after animation settles
                             Task { @MainActor in
-                                try? await Task.sleep(for: .seconds(dismissDuration))
+                                try? await Task.sleep(for: .seconds(0.5))
                                 onSwipe()
                             }
                         } else {

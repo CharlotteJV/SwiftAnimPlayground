@@ -100,13 +100,13 @@ struct HeartReactionExampleView: View {
             }
 
             // Two-stage animation code editors
-            VStack(spacing: 8) {
+            VStack(spacing: 12) {
                 // Stage 1: Pop
-                HStack(spacing: 8) {
-                    Text("1.")
-                        .font(.system(.body, design: .monospaced))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Pop")
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 20)
+                        .textCase(.uppercase)
 
                     InteractiveCodeEditor(
                         animationType: $popAnimationType,
@@ -116,11 +116,11 @@ struct HeartReactionExampleView: View {
                 }
 
                 // Stage 2: Settle
-                HStack(spacing: 8) {
-                    Text("2.")
-                        .font(.system(.body, design: .monospaced))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Settle")
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 20)
+                        .textCase(.uppercase)
 
                     InteractiveCodeEditor(
                         animationType: $settleAnimationType,
